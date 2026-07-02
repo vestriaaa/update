@@ -29,51 +29,57 @@
   `;
   document.head.appendChild(style);
 
-setInterval(_ => {
-  const now = new Date();
-  let m = now.getUTCMonth();
-  let y = now.getUTCFullYear();
-  let target;
+  setInterval(_ => {
+    const now = new Date();
+    // Force "now" calculations to be entirely based on UTC values
+    let m = now.getUTCMonth();
+    let y = now.getUTCFullYear();
+    let target;
 
-  // get first thursday of month at 15:00 UTC
-  for (; ; m++) {
-    target = new Date(Date.UTC(y, m, 1, 15, 0));
-    while (target.getUTCDay() !== 4) target.setUTCDate(target.getUTCDate() + 1);
-    if (target > now) break; 
-  }
+    // Loop strictly using UTC to find the next valid first Thursday at 15:00 UTC
+    for (; ; m++) {
+      target = new Date(Date.UTC(y, m, 1, 15, 0, 0));
+      while (target.getUTCDay() !== 4) {
+        target.setUTCDate(target.getUTCDate() + 1);
+      }
+      // Compare raw timestamps safely
+      if (target.getTime() > now.getTime()) break; 
+    }
 
-  const s = Math.floor((target - now) / 1000);
+    // Difference in seconds (pure UTC timestamp math)
+    const s = Math.floor((target.getTime() - now.getTime()) / 1000);
 
-  // suffix
-  const d = target.getUTCDate();
-  const j = d % 10, k = d % 100;
-  const opt = (j == 1 && k != 11) ? "st" : 
-              (j == 2 && k != 12) ? "nd" : 
-              (j == 3 && k != 13) ? "rd" : "th";
+    // Suffix logic
+    const d = target.getUTCDate();
+    const j = d % 10, k = d % 100;
+    const opt = (j == 1 && k != 11) ? "st" : 
+                (j == 2 && k != 12) ? "nd" : 
+                (j == 3 && k != 13) ? "rd" : "th";
 
-  const monthName = target.toLocaleDateString('en-US', { month: 'long' });
+    // Force formatting to display the UTC date text, ignoring local system timezone
+    const monthName = target.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
 
-  // zero-pad time
-  const hours = String(target.getUTCHours()).padStart(2, '0');
-  const minutes = String(target.getUTCMinutes()).padStart(2, '0');
+    const hours = String(target.getUTCHours()).padStart(2, '0');
+    const minutes = String(target.getUTCMinutes()).padStart(2, '0');
 
-  const dateHeader = `${monthName} ${d}${opt}, ${target.getUTCFullYear()} ${hours}:${minutes}`;
+    const dateHeader = `${monthName} ${d}${opt}, ${target.getUTCFullYear()} ${hours}:${minutes} UTC`;
 
-  let units = [
-    [s / 604800, 'weeks'],
-    [s / 86400 % 7, 'days'],
-    [s / 3600 % 24, 'hours'],
-    [s / 60 % 60, 'minutes'],
-    [s % 60, 'seconds']
-  ];
+    let units = [
+      [s / 604800, 'weeks'],
+      [s / 86400 % 7, 'days'],
+      [s / 3600 % 24, 'hours'],
+      [s / 60 % 60, 'minutes'],
+      [s % 60, 'seconds']
+    ];
 
-  while (units.length > 1 && Math.floor(units[0][0]) === 0) units.shift();
+    while (units.length > 1 && Math.floor(units[0][0]) === 0) units.shift();
 
-  const timerString = units.map(v => Math.floor(v[0]) + ' ' + v[1]).join(' ');
+    const timerString = units.map(v => Math.floor(v[0]) + ' ' + v[1]).join(' ');
 
-  t.innerHTML = `
-    <div>${dateHeader}</div>
-    <div style="opacity: 0.8; font-size: 0.7em;">${timerString}</div>
-  `;
-}, 1000)
+    t.innerHTML = `
+      <div>${dateHeader}</div>
+      <div style="opacity: 0.8; font-size: 0.7em;">${timerString}</div>
+    `;
+  }, 1000);
 </script>
+</div>
